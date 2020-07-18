@@ -4,7 +4,7 @@
 	<description>Pluckeye style filter for use with Jarvis</description>
 	<executable>powershell</executable>
 	<arguments>-File launchProxy.ps1</arguments>
-	<logpath>C:\Users\Public\Documents\mitmproxy-filter</logpath>
+	<logpath>C:\Users\Public\Documents\jarvis-filter</logpath>
 	<log mode="roll-by-time">
 		<pattern>yyyyMMdd</pattern>
 	</log>
