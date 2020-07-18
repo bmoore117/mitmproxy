@@ -5,7 +5,7 @@ $ignoredHosts = $lines -join "|"
 
 Write-Host "Launching with ignored hosts" $ignoredHosts
 
-cd ../venv/Scripts
+Set-Location ../venv/Scripts
 .\Activate.ps1
 
 .\mitmdump.exe --mode transparent --set block_global=false --ssl-insecure -s ..\..\contrib\jarvis-filter.py --ignore-hosts $ignoredHosts
