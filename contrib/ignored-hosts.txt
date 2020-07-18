@@ -1,0 +1,15 @@
+(.*)microsoft.com
+(.*)windows.com
+(.*).ea.com
+(.*)origin.com
+(.*)akamaihd.net
+(.*)steamcontent.com
+(.*)discord.com
+(.*)discord.gg
+(.*)bankofamerica.com
+(.*)hcaptcha.com
+(.*)cloudflare.com
+(.*)luis.ai
+(.*)live.com
+(.*)dice.se
+music-pa.clients[0-9].google.com

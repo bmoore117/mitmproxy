@@ -1,0 +1,33 @@
+{
+    "hosts": [
+      "drudgereport.com",
+      "netflix.com",
+      "nflxso.net",
+      "crunchyroll.com",
+      "youtube.com",
+      "ytimg.com",
+      "ggpht.com",
+      "gstatic.com",
+      "googlevideo.com",
+      "162.159.134.234",
+      "162.159.136.234",
+      "discordapp.com",
+      "discord.gg",
+      "ea.com",
+      "respawn.com",
+      "google-analytics.com",
+      "akamaihd.net",
+      "steampowered.com",
+      "steamcontent.com",
+      "bankofamerica.com",
+      "162.159.133.234",
+      "149.154.175.60",
+      "hcaptcha.com",
+      "cloudflare.com",
+      "cloudfront.com",
+      "amazon.com",
+      "play.google.com",
+      "arstechnica.com",
+      "genengnews.com"
+    ]
+}

@@ -1,0 +1,24 @@
+.\mitmdump.exe --mode transparent --set block_global=false --ssl-insecure -s C:\Users\moore\Code\mitmproxy\contrib\jarvis-filter.py --ignore-hosts "(.*)microsoft.com|(.*).ea.com|(.*)origin.com|(.*)akamaihd.net|(.*)steamcontent.com|(.*)discord.com|(.*)bankofamerica.com|(.*)hcaptcha.com|(.*)gstatic.com|(.*)cloudflare.com"
+if any websocket was started whose host was not in the allowed hosts or distilled hosts from the current set of allowed page urls, cancel it.
+
+Perhaps also allow text frames, but not binary frames
+
+Then figure out a core set of allowable hosts for websockets, it does seem there are a decent amount of them
+
+
+Working:
+    Amazon
+    Netflix
+    Steam
+    Apex
+    Origin
+    youtube
+    Discord - untested with voice
+    bank of america - portal and citrix
+    Only thing not working is crunchyroll - but perhaps privacy pass
+
+
+Next steps:
+    Investigate beautiful soup default attribute value
+    Investigate base windows version of mitmproxy - are modifications to windows.py actually needed?
+    Bundle and package with winsw
