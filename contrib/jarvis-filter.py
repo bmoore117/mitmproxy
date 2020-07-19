@@ -1,3 +1,4 @@
+import re
 import socket
 import json
 import time
@@ -20,7 +21,7 @@ class JarvisFilter:
 
     def __init__(self):
         self.allowedHosts = set()
-        self.allowedPageUrls = set()
+        self.discoveredPageHosts = set()
         self.last100Hosts = collections.deque(maxlen=100)
         self.firstRun = True
         self.lock = threading.Lock()
@@ -63,45 +64,51 @@ class JarvisFilter:
     def processTagSrc(self, tag, parsedUri):
         src = tag['src']
         if "://" not in src:
-            #if "//" in src:
-             #   resolvedUrl = parsedUri.scheme + ":" + src
-              #  self.allowedPageUrls.add(resolvedUrl)
-            #else:
-             #   resolvedUrl = urljoin(parsedUri.scheme + "://" + parsedUri.netloc, src)
-              #  self.allowedPageUrls.add(resolvedUrl)
             self.last100Hosts.append(parsedUri.hostname)
         else:  
-            #self.allowedPageUrls.add(src)
             parsed = urlparse(src)
             self.last100Hosts.append(parsed.hostname)
-        self.allowedPageUrls = set(self.last100Hosts)
-        ctx.log.info("Currently caching " + str(len(self.allowedPageUrls)) + " hosts")
+        self.discoveredPageHosts = set(self.last100Hosts)
+        ctx.log.info("Currently caching " + str(len(self.discoveredPageHosts)) + " hosts")
         
 
     def response(self, flow: mitmproxy.http.HTTPFlow):
         ctx.log.info("Content type is " + flow.response.headers.get("Content-Type", "null") + " for url: " + flow.request.pretty_url)
         parsedUri = urlparse(flow.request.pretty_url)
 
-        if self.isHostNameBlocked(parsedUri.hostname) and parsedUri.hostname not in self.allowedPageUrls:
-            # if the request url is not in allowed hosts or discovered links from an allowed host, strip out all images and video
+        if self.isHostNameBlocked(parsedUri.hostname) and parsedUri.hostname not in self.discoveredPageHosts:
+            # if the request url is not in allowed hosts or discovered hosts from an allowed host, strip out all images and video
             # from html, and if this request object was from some AJAX and fetching media directly, simply return empty response
-            if 'text/html' in flow.response.headers.get("Content-Type", "").lower():
-                ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
-                soup = BeautifulSoup(flow.response.text, 'html.parser')
+            contentType = flow.response.headers.get("Content-Type", "").lower()
+            if 'text/html' in contentType:
+                if not flow.response.text:
+                    ctx.log.info("No text received")
+                    ctx.log.info("Got headers: " + str(flow.response.headers))
+                else:
+                    ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
 
-                for img in soup.find_all('img'):
-                    del img['src']
+                    # remove data:image/ urls if present - Google includes in the initial response
+                    # original: 'data:image/.*?base64,[A-Za-z0-9+/]+'
+                    p = re.compile(r'data:image[A-Za-z0-9+/,\\;]+')
+                    doc = p.sub('', flow.response.text)
+                    soup = BeautifulSoup(doc, 'html.parser')
 
-                for vid in soup.find_all('video'):
-                    del vid['src']
+                    for img in soup.find_all('img'):
+                        del img['src']
 
-                flow.response.text = soup.prettify()
-            elif 'image' in flow.response.headers.get("Content-Type", "").lower():
+                    for vid in soup.find_all('video'):
+                        del vid['src']
+
+                    flow.response.text = soup.prettify()
+            elif 'image' in contentType:
                 ctx.log.info("Image detected, returning empty response body")
                 flow.response.text = ""
-            elif 'video' in flow.response.headers.get("Content-Type", "").lower():
+            elif 'video' in contentType:
                 ctx.log.info("Video detected, returning empty response body")
                 flow.response.text = ""
+            elif 'javascript' in contentType:
+                p = re.compile(r'data:image[A-Za-z0-9+/,\\;]+')
+                flow.response.text = p.sub('', flow.response.text)
         else:
             # here we whitelist all found links on a page whose host is already whitelisted
             if 'text/html' in flow.response.headers.get("Content-Type", "").lower():
@@ -114,7 +121,7 @@ class JarvisFilter:
                 for vid in soup.find_all('video'):
                     self.processTagSrc(vid, parsedUri)
                     
-                ctx.log.info("Added dynamically discovered hosts from whitelisted page: " + str(self.allowedPageUrls))
+                ctx.log.info("Added dynamically discovered hosts from whitelisted page: " + str(self.discoveredPageHosts))
 
 
     def websocket_message(self, flow: mitmproxy.websocket.WebSocketFlow):
@@ -130,7 +137,7 @@ class JarvisFilter:
                 flow.messages[-1].content = ""
 
 
-    def getHostNameForIp(self, ip, ):
+    def getHostNameForIp(self, ip):
         result = socket.gethostbyaddr(ip)
         return result[0]
 
