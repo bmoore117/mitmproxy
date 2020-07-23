@@ -1,6 +1,6 @@
 (.*)microsoft.com
 (.*)windows.com
-(.*).ea.com
+(.*)ea.com
 (.*)origin.com
 (.*)akamaihd.net
 (.*)steamcontent.com
@@ -13,3 +13,4 @@
 (.*)live.com
 (.*)dice.se
 music-pa.clients[0-9].google.com
+(.*)github.com
