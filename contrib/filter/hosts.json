@@ -1,35 +1,3 @@
 {
-    "hosts": [
-      "drudgereport.com",
-      "netflix.com",
-      "nflxso.net",
-      "crunchyroll.com",
-      "youtube.com",
-      "ytimg.com",
-      "ggpht.com",
-      "googlevideo.com",
-      "162.159.134.234",
-      "162.159.136.234",
-      "discordapp.com",
-      "discord.gg",
-      "ea.com",
-      "respawn.com",
-      "google-analytics.com",
-      "akamaihd.net",
-      "steampowered.com",
-      "steamcontent.com",
-      "bankofamerica.com",
-      "162.159.133.234",
-      "149.154.175.60",
-      "hcaptcha.com",
-      "cloudflare.com",
-      "cloudfront.com",
-      "amazon.com",
-      "play.google.com",
-      "arstechnica.com",
-      "genengnews.com",
-      "vc.v.vrv.co",
-      "dlvr1.net",
-      "akamaized.net"
-    ]
+  "hosts" : [ "149.154.175.60", "162.159.133.234", "162.159.134.234", "162.159.136.234", "akamaihd.net", "akamaized.net", "amazon.com", "amazonaws.com", "arstechnica.com", "bankofamerica.com", "cloudflare.com", "cloudfront.com", "coinmarketcap.com", "crunchyroll.com", "discord.gg", "discordapp.com", "dlvr1.net", "drudgereport.com", "ea.com", "genengnews.com", "ggpht.com", "google-analytics.com", "googlevideo.com", "halowaypoint.com", "hcaptcha.com", "netflix.com", "nflxso.net", "play.google.com", "respawn.com", "steamcontent.com", "steampowered.com", "vc.v.vrv.co", "youtube.com", "ytimg.com" ]
 }
