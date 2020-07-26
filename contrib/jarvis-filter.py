@@ -62,14 +62,15 @@ class JarvisFilter:
 
 
     def processTagSrc(self, tag, parsedUri):
-        src = tag['src']
-        if "://" not in src:
-            self.last100Hosts.append(parsedUri.hostname)
-        else:  
-            parsed = urlparse(src)
-            self.last100Hosts.append(parsed.hostname)
-        self.discoveredPageHosts = set(self.last100Hosts)
-        ctx.log.info("Currently caching " + str(len(self.discoveredPageHosts)) + " hosts")
+        if (tag.has_attr('src')):
+            src = tag['src']
+            if "://" not in src:
+                self.last100Hosts.append(parsedUri.hostname)
+            else:  
+                parsed = urlparse(src)
+                self.last100Hosts.append(parsed.hostname)
+            self.discoveredPageHosts = set(self.last100Hosts)
+            ctx.log.info("Currently caching " + str(len(self.discoveredPageHosts)) + " hosts")
         
 
     def response(self, flow: mitmproxy.http.HTTPFlow):
