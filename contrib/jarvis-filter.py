@@ -71,11 +71,13 @@ class JarvisFilter:
                 return False # not blocked
         
         return True # blocked
+        
 
     def getUrlDirPath(self, parsedUri):
         lastIndexOfSlash = parsedUri.path.rindex("/") + 1
         dirPath = parsedUri.path[:lastIndexOfSlash]
         return parsedUri.hostname + dirPath
+
 
     def processTagSrc(self, tag, parsedUri):
         if (tag.has_attr('src')):
@@ -87,9 +89,8 @@ class JarvisFilter:
             else:  
                 parsed = urlparse(src)
                 self.last100UrlPaths.append(self.getUrlDirPath(parsed))
-            self.discoveredPageUrlPaths = set(self.last100UrlPaths)
-            ctx.log.info("Number of cached url paths: " + str(len(self.discoveredPageUrlPaths)))
-        
+            self.discoveredPageUrlPaths = set(self.last100UrlPaths)        
+
 
     def response(self, flow: mitmproxy.http.HTTPFlow):
         ctx.log.info("Content type is " + flow.response.headers.get("Content-Type", "null") + " for url: " + flow.request.pretty_url)
