@@ -8,6 +8,7 @@ import mitmproxy.http
 import mitmproxy.websocket
 
 from mitmproxy import ctx
+from mitmproxy import http
 from bs4 import BeautifulSoup
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
@@ -20,13 +21,17 @@ from wsproto.frame_protocol import Opcode
 class JarvisFilter:
 
     def __init__(self):
-        self.allowedHosts = set()
-        self.discoveredPageHosts = set()
-        self.last100Hosts = collections.deque(maxlen=100)
+        self.allowedUrlPaths = set() # these are manually added by users
+        self.discoveredPageUrlPaths = set() # these are dyamically discovered from pages users visit
+        self.last100UrlPaths = collections.deque(maxlen=100)
         self.firstRun = True
         self.lock = threading.Lock()
             
         self.loadFile("C:\\Users\\ben-local\\Code\\mitmproxy\\contrib\\filter\\hosts.json")
+        
+        # remove data:image/ urls if present - Google includes in the initial response
+        # original: 'data:image/.*?base64,[A-Za-z0-9+/]+'
+        self.dataUrlRegex = re.compile(r'data:image[A-Za-z0-9+/,\\;=]+')
         
         patterns = "*.json"
         ignore_patterns = ""
@@ -46,83 +51,96 @@ class JarvisFilter:
 
 
     def loadFile(self, srcPath):
-        self.allowedHosts = set()
+        self.allowedUrlPaths = set()
         with self.lock:
             with open(srcPath) as f:
                 data = json.load(f)
-                self.allowedHosts.update(data['hosts'])
-            print(self.allowedHosts)
+                self.allowedUrlPaths.update(data['hosts'])
+            print(self.allowedUrlPaths)
 
 
-    def isHostNameBlocked(self, hostname):
-        for host in self.allowedHosts:
-            if host in hostname:
-                return False
-        return True
+    def isUrlPathBlocked(self, url):
+        # /images/dogs in /images/dogs/pugs,
+        # /images/dogs not in /images/cats, -> /images/dogs = urlPath, /images/cats = url
+        for urlPath in self.discoveredPageUrlPaths:
+            if urlPath in url:
+                return False # not blocked
+        
+        for urlPath in self.allowedUrlPaths:
+            if urlPath in url:
+                return False # not blocked
+        
+        return True # blocked
 
+    def getUrlDirPath(self, parsedUri):
+        lastIndexOfSlash = parsedUri.path.rindex("/") + 1
+        dirPath = parsedUri.path[:lastIndexOfSlash]
+        return parsedUri.hostname + dirPath
 
     def processTagSrc(self, tag, parsedUri):
         if (tag.has_attr('src')):
             src = tag['src']
             if "://" not in src:
-                self.last100Hosts.append(parsedUri.hostname)
+                fullUrl = parsedUri.scheme + ":" + src
+                parsedFull = urlparse(fullUrl)
+                self.last100UrlPaths.append(self.getUrlDirPath(parsedFull))
             else:  
                 parsed = urlparse(src)
-                self.last100Hosts.append(parsed.hostname)
-            self.discoveredPageHosts = set(self.last100Hosts)
-            ctx.log.info("Currently caching " + str(len(self.discoveredPageHosts)) + " hosts")
+                self.last100UrlPaths.append(self.getUrlDirPath(parsed))
+            self.discoveredPageUrlPaths = set(self.last100UrlPaths)
+            ctx.log.info("Number of cached url paths: " + str(len(self.discoveredPageUrlPaths)))
         
 
     def response(self, flow: mitmproxy.http.HTTPFlow):
         ctx.log.info("Content type is " + flow.response.headers.get("Content-Type", "null") + " for url: " + flow.request.pretty_url)
+        
         parsedUri = urlparse(flow.request.pretty_url)
+        url = self.getUrlDirPath(parsedUri)
+        
+        ctx.log.info("Constructed url is " + url)
 
-        if self.isHostNameBlocked(parsedUri.hostname) and parsedUri.hostname not in self.discoveredPageHosts:
-            # if the request url is not in allowed hosts or discovered hosts from an allowed host, strip out all images and video
-            # from html, and if this request object was from some AJAX and fetching media directly, simply return empty response
+        if self.isUrlPathBlocked(url):
+            # if the request url is not in allowed hosts or discovered hosts from an allowed host, strip out data:image urls
+            # from html, and if this request object was from some AJAX and fetching media directly, return 404s
             contentType = flow.response.headers.get("Content-Type", "").lower()
             if 'text/html' in contentType:
-                if not flow.response.text:
-                    ctx.log.info("No text received")
-                    ctx.log.info("Got headers: " + str(flow.response.headers))
-                else:
-                    ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
+                try:
+                    if not flow.response.text: # this line may fail due to WOFF responses, it has been observed in the wild
+                        ctx.log.info("No text received")
+                        ctx.log.info("Got headers: " + str(flow.response.headers))
+                    else:
+                        ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
 
-                    # remove data:image/ urls if present - Google includes in the initial response
-                    # original: 'data:image/.*?base64,[A-Za-z0-9+/]+'
-                    p = re.compile(r'data:image[A-Za-z0-9+/,\\;]+')
-                    doc = p.sub('', flow.response.text)
-                    soup = BeautifulSoup(doc, 'html.parser')
+                        doc = self.dataUrlRegex.sub('', flow.response.text)
+                        soup = BeautifulSoup(doc, 'html.parser')
 
-                    for img in soup.find_all('img'):
-                        del img['src']
-
-                    for vid in soup.find_all('video'):
-                        del vid['src']
-
-                    flow.response.text = soup.prettify()
+                        flow.response.text = soup.prettify()
+                except ValueError:
+                    ctx.log.info("Received message with undecipherable encoding, forwarding as-is")
             elif 'image' in contentType:
                 ctx.log.info("Image detected, returning empty response body")
-                flow.response.text = ""
+                flow.response = http.HTTPResponse.make(404)
             elif 'video' in contentType:
                 ctx.log.info("Video detected, returning empty response body")
-                flow.response.text = ""
+                flow.response = http.HTTPResponse.make(404)
             elif 'javascript' in contentType:
-                p = re.compile(r'data:image[A-Za-z0-9+/,\\;]+')
-                flow.response.text = p.sub('', flow.response.text)
+                flow.response.text = self.dataUrlRegex.sub('', flow.response.text)
         else:
             # here we whitelist all found links on a page whose host is already whitelisted
             if 'text/html' in flow.response.headers.get("Content-Type", "").lower():
                 ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
-                soup = BeautifulSoup(flow.response.text, 'html.parser')
+                try:
+                    soup = BeautifulSoup(flow.response.text, 'html.parser') # this line may fail due to encoding, unlikely but..
 
-                for img in soup.find_all('img'):
-                    self.processTagSrc(img, parsedUri)
+                    for img in soup.find_all('img'):
+                        self.processTagSrc(img, parsedUri)
 
-                for vid in soup.find_all('video'):
-                    self.processTagSrc(vid, parsedUri)
+                    for vid in soup.find_all('video'):
+                        self.processTagSrc(vid, parsedUri)
                     
-                ctx.log.info("Added dynamically discovered hosts from whitelisted page: " + str(self.discoveredPageHosts))
+                    ctx.log.info("Added dynamically discovered hosts from whitelisted page: " + str(self.discoveredPageUrlPaths))
+                except ValueError:
+                    ctx.log.info("Unable to dynamically discover hosts as content encoding was undecipherable")
 
 
     def websocket_message(self, flow: mitmproxy.websocket.WebSocketFlow):
@@ -132,7 +150,7 @@ class JarvisFilter:
             message is user-modifiable. Currently there are two types of
             messages, corresponding to the BINARY and TEXT frame types.
         """
-        if flow.server_conn.address[0] not in self.allowedHosts:
+        if flow.server_conn.address[0] not in self.allowedUrlPaths:
             if flow.messages[-1].type == Opcode.BINARY:
                 ctx.log.info("Blocking binary frame type")
                 flow.messages[-1].content = ""
