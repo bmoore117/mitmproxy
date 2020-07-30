@@ -6,10 +6,12 @@
 (.*)discord.com
 (.*)discord.gg
 (.*)ea.com
+(.*)fonts.gstatic.com
 (.*)gfx.ms
 (.*)github.com
 (.*)halowaypoint.com
 (.*)hcaptcha.com
+(.*)lastpass.com
 (.*)live.com
 (.*)luis.ai
 (.*)microsoft.com
