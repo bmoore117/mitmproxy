@@ -78,18 +78,28 @@ class JarvisFilter:
         dirPath = parsedUri.path[:lastIndexOfSlash]
         return parsedUri.hostname + dirPath
 
+    def processSrc(self, src, currentPageUri):
+        parsed = None
+        if "://" not in src:
+            if src.startswith("//"):
+                fullUrl = currentPageUri.scheme + ":" + src
+            elif src.startswith("/"):
+                fullUrl = currentPageUri.scheme + ":/" + src    
+            else:
+                fullUrl = currentPageUri.scheme + "://" + src
+            parsed = urlparse(fullUrl)
+        else:  
+            parsed = urlparse(src)
+        
+        self.last100UrlPaths.append(self.getUrlDirPath(parsed))
 
-    def processTagSrc(self, tag, parsedUri):
+    def processTagSrc(self, tag, currentPageUri):
         if (tag.has_attr('src')):
-            src = tag['src']
-            if "://" not in src:
-                fullUrl = parsedUri.scheme + ":" + src
-                parsedFull = urlparse(fullUrl)
-                self.last100UrlPaths.append(self.getUrlDirPath(parsedFull))
-            else:  
-                parsed = urlparse(src)
-                self.last100UrlPaths.append(self.getUrlDirPath(parsed))
-            self.discoveredPageUrlPaths = set(self.last100UrlPaths)        
+            self.processSrc(tag['src'], currentPageUri)
+        if (tag.has_attr('data-src')):
+            self.processSrc(tag['data-src'], currentPageUri)
+            
+        self.discoveredPageUrlPaths = set(self.last100UrlPaths)        
 
 
     def response(self, flow: mitmproxy.http.HTTPFlow):
