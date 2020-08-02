@@ -13,6 +13,7 @@
 (.*)fonts.gstatic.com
 (.*)gfx.ms
 (.*)github.com
+(.*)google.com/maps
 (.*)googleapis.com
 (.*)halowaypoint.com
 (.*)hangouts.google.com
@@ -26,3 +27,5 @@
 (.*)protonmail.com
 (.*)steamcontent.com
 (.*)windows.com
+maps.gstatic.com
+lh[0-9].googleusercontent.com
