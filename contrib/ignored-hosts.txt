@@ -12,6 +12,7 @@
 (.*)ea.com
 (.*)fonts.gstatic.com
 (.*)gfx.ms
+(.*)ggpht.com
 (.*)github.com
 (.*)google.com/maps
 (.*)googleapis.com
@@ -19,6 +20,7 @@
 (.*)hangouts.google.com
 (.*)hcaptcha.com
 (.*)lastpass.com
+(.*)ledger.com
 (.*)live.com
 (.*)luis.ai
 (.*)microsoft.com
@@ -27,5 +29,5 @@
 (.*)protonmail.com
 (.*)steamcontent.com
 (.*)windows.com
-maps.gstatic.com
 lh[0-9].googleusercontent.com
+maps.gstatic.com
