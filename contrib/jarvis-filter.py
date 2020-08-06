@@ -26,6 +26,7 @@ class JarvisFilter:
         self.last100UrlPaths = collections.deque(maxlen=100)
         self.firstRun = True
         self.lock = threading.Lock()
+        self.lockdownActive = False
             
         self.loadFile("C:\\Users\\ben-local\\Code\\mitmproxy\\contrib\\filter\\hosts.json")
         
@@ -56,10 +57,14 @@ class JarvisFilter:
             with open(srcPath) as f:
                 data = json.load(f)
                 self.allowedUrlPaths.update(data['hosts'])
+                self.lockdownActive = data.get('lockdownActive', False)
             print(self.allowedUrlPaths)
 
 
     def isUrlPathBlocked(self, url):
+        if self.lockdownActive:
+            return True # blocked
+
         # /images/dogs in /images/dogs/pugs,
         # /images/dogs not in /images/cats, -> /images/dogs = urlPath, /images/cats = url
         for urlPath in self.discoveredPageUrlPaths:
@@ -137,21 +142,25 @@ class JarvisFilter:
             elif 'javascript' in contentType:
                 flow.response.text = self.dataUrlRegex.sub('', flow.response.text)
         else:
-            # here we whitelist all found links on a page whose host is already whitelisted
-            if 'text/html' in flow.response.headers.get("Content-Type", "").lower():
-                ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
-                try:
-                    soup = BeautifulSoup(flow.response.text, 'html.parser') # this line may fail due to encoding, unlikely but..
+            if 'youtube.com' in url and 'Age-restricted video' in flow.response.text:
+                    ctx.log.info("Filtering age-restricted youtube video")
+                    flow.response = http.HTTPResponse.make(404)
+            else:
+                # here we whitelist all found links on a page whose host is already whitelisted
+                if 'text/html' in flow.response.headers.get("Content-Type", "").lower():
+                    ctx.log.info("HTML detected, parsing page: " + flow.request.pretty_url)
+                    try:
+                        soup = BeautifulSoup(flow.response.text, 'html.parser') # this line may fail due to encoding, unlikely but..
 
-                    for img in soup.find_all('img'):
-                        self.processTagSrc(img, parsedUri)
+                        for img in soup.find_all('img'):
+                            self.processTagSrc(img, parsedUri)
 
-                    for vid in soup.find_all('video'):
-                        self.processTagSrc(vid, parsedUri)
+                        for vid in soup.find_all('video'):
+                            self.processTagSrc(vid, parsedUri)
                     
-                    ctx.log.info("Added dynamically discovered hosts from whitelisted page: " + str(self.discoveredPageUrlPaths))
-                except ValueError:
-                    ctx.log.info("Unable to dynamically discover hosts as content encoding was undecipherable")
+                        ctx.log.info("Added dynamically discovered hosts from whitelisted page: " + str(self.discoveredPageUrlPaths))
+                    except ValueError:
+                        ctx.log.info("Unable to dynamically discover hosts as content encoding was undecipherable")
 
 
     def websocket_message(self, flow: mitmproxy.websocket.WebSocketFlow):
