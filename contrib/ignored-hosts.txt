@@ -29,5 +29,6 @@
 (.*)protonmail.com
 (.*)steamcontent.com
 (.*)windows.com
+jarvis.cognitiveservices.azure.com
 lh[0-9].googleusercontent.com
 maps.gstatic.com
