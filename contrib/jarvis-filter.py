@@ -23,6 +23,7 @@ class JarvisFilter:
     def __init__(self):
         self.allowedUrlPaths = set() # these are manually added by users
         self.discoveredPageUrlPaths = set() # these are dyamically discovered from pages users visit
+        self.blockedUrls = set()
         self.last100UrlPaths = collections.deque(maxlen=100)
         self.firstRun = True
         self.lock = threading.Lock()
@@ -56,12 +57,22 @@ class JarvisFilter:
         with self.lock:
             with open(srcPath) as f:
                 data = json.load(f)
-                self.allowedUrlPaths.update(data['hosts'])
+                self.allowedUrlPaths.clear()
+                self.allowedUrlPaths.update(data.get('hosts'), set())
+
+                self.blockedUrls.clear()
+                self.blockedUrls.update(data.get('blockedHosts', set()))
+                
                 self.lockdownActive = data.get('lockdownActive', False)
             print(self.allowedUrlPaths)
 
-
     def isUrlPathBlocked(self, url):
+        for urlPath in self.blockedUrls:
+            if urlPath in url:
+                return True # not blocked
+        return False
+
+    def isUrlPathNotWhitelisted(self, url):
         if self.lockdownActive:
             return True # blocked
 
@@ -116,6 +127,10 @@ class JarvisFilter:
         ctx.log.info("Constructed url is " + url)
 
         if self.isUrlPathBlocked(url):
+            flow.response = http.HTTPResponse.make(404)
+            return
+
+        if self.isUrlPathNotWhitelisted(url):
             # if the request url is not in allowed hosts or discovered hosts from an allowed host, strip out data:image urls
             # from html, and if this request object was from some AJAX and fetching media directly, return 404s
             contentType = flow.response.headers.get("Content-Type", "").lower()
@@ -142,8 +157,12 @@ class JarvisFilter:
             elif 'javascript' in contentType:
                 flow.response.text = self.dataUrlRegex.sub('', flow.response.text)
         else:
-            if 'youtube.com' in url and 'Age-restricted video' in flow.response.text:
+            if 'youtube.com' in url:
+                if 'Age-restricted video' in flow.response.text:
                     ctx.log.info("Filtering age-restricted youtube video")
+                    flow.response = http.HTTPResponse.make(404)
+                elif 'Zooier Than Thou' in flow.response.text:
+                    ctx.log.info("Filtering filth")
                     flow.response = http.HTTPResponse.make(404)
             else:
                 # here we whitelist all found links on a page whose host is already whitelisted
