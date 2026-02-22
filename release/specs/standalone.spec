@@ -12,9 +12,19 @@ for tool in ["mitmproxy", "mitmdump", "mitmweb"]:
         # https://github.com/mitmproxy/mitmproxy/issues/6757
         options.append(("unbuffered", None, "OPTION"))
 
+    # Addon dependencies not transitively imported by mitmproxy itself
+    addon_hiddenimports = [
+        'lxml', 'lxml.etree', 'lxml.html',
+        'ahocorasick',
+        'bs4',
+        'watchdog', 'watchdog.events', 'watchdog.observers',
+        'wsproto', 'wsproto.frame_protocol',
+    ]
+
     a = Analysis(
         [tool],
         excludes=excludes,
+        hiddenimports=addon_hiddenimports,
     )
     pyz = PYZ(a.pure, a.zipped_data)
 
