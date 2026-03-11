@@ -45,6 +45,7 @@ from mitmproxy.proxy import mode_specs
 from mitmproxy.proxy import server
 from mitmproxy.proxy.context import Context
 from mitmproxy.proxy.layer import Layer
+from mitmproxy.utils import asyncio_utils
 from mitmproxy.utils import human
 
 if sys.version_info < (3, 11):
@@ -439,6 +440,14 @@ class LocalRedirectorInstance(ServerInstance[mode_specs.LocalMode]):
         if cls._instance is not None:
             await cls._instance.handle_stream(stream)
 
+    @classmethod
+    async def _monitor_redirector(cls) -> None:
+        """Await redirector shutdown. When it completes, the redirector process has exited; trigger process shutdown."""
+        assert cls._server is not None
+        await cls._server.wait_closed()
+        logger.error("Local redirector exited unexpectedly. Shutting down.")
+        ctx.master.shutdown()
+
     async def _start(self) -> None:
         if self._instance:
             raise RuntimeError("Cannot spawn more than one local redirector.")
@@ -455,6 +464,11 @@ class LocalRedirectorInstance(ServerInstance[mode_specs.LocalMode]):
                 cls._server = await mitmproxy_rs.local.start_local_redirector(
                     cls.redirector_handle_stream,
                     cls.redirector_handle_stream,
+                )
+                asyncio_utils.create_task(
+                    cls._monitor_redirector(),
+                    name="local_redirector_monitor",
+                    keep_ref=True,
                 )
             except Exception:
                 cls._instance = None
