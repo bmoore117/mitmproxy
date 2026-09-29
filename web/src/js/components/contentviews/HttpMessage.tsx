@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from "react";
-import { HTTPFlow, HTTPMessage } from "../../flow";
+import type { HTTPFlow, HTTPMessage } from "../../flow";
 import { useAppDispatch, useAppSelector } from "../../ducks";
 import { setContentViewFor } from "../../ducks/ui/flow";
-import { ContentViewData, useContentView } from "./useContentView";
+import type { ContentViewData } from "./useContentView";
+import { useContentView } from "./useContentView";
 import { useContent } from "./useContent";
 import { MessageUtils } from "../../flow/utils";
 import FileChooser from "../common/FileChooser";
@@ -57,7 +58,7 @@ function HttpMessageEdit({ flow, message, stopEdit }: HttpMessageEditProps) {
     const save = async () => {
         await dispatch(
             flowActions.update(flow, {
-                [part]: { content: editedContent || content || "" },
+                [part]: { content: editedContent ?? content ?? "" },
             }),
         );
         stopEdit();
@@ -68,7 +69,8 @@ function HttpMessageEdit({ flow, message, stopEdit }: HttpMessageEditProps) {
                 <h5>[Editing]</h5>
                 <Button
                     onClick={save}
-                    icon="fa-check text-success"
+                    icon="confirm"
+                    iconClassName="text-success"
                     className="btn-xs"
                 >
                     Done
@@ -76,7 +78,8 @@ function HttpMessageEdit({ flow, message, stopEdit }: HttpMessageEditProps) {
                 &nbsp;
                 <Button
                     onClick={() => stopEdit()}
-                    icon="fa-times text-danger"
+                    icon="close"
+                    iconClassName="text-danger"
                     className="btn-xs"
                 >
                     Cancel
@@ -137,12 +140,12 @@ function HttpMessageView({ flow, message, startEdit }: HttpMessageViewProps) {
                     <CopyButton flow={flow} message={message} />
                 )}
                 &nbsp;
-                <Button onClick={startEdit} icon="fa-edit" className="btn-xs">
+                <Button onClick={startEdit} icon="edit" className="btn-xs">
                     Edit
                 </Button>
                 &nbsp;
                 <FileChooser
-                    icon="fa-upload"
+                    icon="upload"
                     text="Replace"
                     title="Upload a file to replace the content."
                     onOpenFile={(content) =>
@@ -217,7 +220,7 @@ function CopyButton({ flow, message }: CopyButtonProps) {
     return (
         <Button
             onClick={handleClickCopyButton}
-            icon="fa-clipboard"
+            icon="clipboard"
             className="btn-xs"
             disabled={isFetchingFullContent}
         >
@@ -227,8 +230,8 @@ function CopyButton({ flow, message }: CopyButtonProps) {
 }
 
 const isImage =
-    /^image\/(png|jpe?g|gif|webp|vnc.microsoft.icon|x-icon|svg\+xml)$/i;
-ViewImage.matches = (msg) =>
+    /^image\/(png|jpe?g|gif|webp|avif|vnd\.microsoft\.icon|x-icon|svg\+xml)$/i;
+ViewImage.matches = (msg: HTTPMessage) =>
     isImage.test(MessageUtils.getContentType(msg) || "");
 
 type ViewImageProps = {

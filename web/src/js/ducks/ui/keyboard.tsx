@@ -3,7 +3,7 @@ import * as flowsActions from "../flows";
 import * as modalActions from "./modal";
 import { tabsForFlow } from "../../components/FlowView";
 import { runCommand } from "../../utils";
-import { AppDispatch, RootState } from "../store";
+import type { AppDispatch, RootState } from "../store";
 
 export function onKeyDown(e: KeyboardEvent) {
     //console.debug("onKeyDown", e)
@@ -57,11 +57,12 @@ export function onKeyDown(e: KeyboardEvent) {
                 if (!flow) break;
                 const tabs = tabsForFlow(flow);
                 const currentTab = getState().ui.flow.tab;
+                const currentTabIndex = tabs.findIndex(
+                    (tab) => tab === currentTab,
+                );
                 const nextTab =
                     tabs[
-                        (Math.max(0, tabs.indexOf(currentTab)) -
-                            1 +
-                            tabs.length) %
+                        (Math.max(0, currentTabIndex) - 1 + tabs.length) %
                             tabs.length
                     ];
                 dispatch(selectTab(nextTab));
@@ -73,11 +74,11 @@ export function onKeyDown(e: KeyboardEvent) {
                 if (!flow) break;
                 const tabs = tabsForFlow(flow);
                 const currentTab = getState().ui.flow.tab;
+                const currentTabIndex = tabs.findIndex(
+                    (tab) => tab === currentTab,
+                );
                 const nextTab =
-                    tabs[
-                        (Math.max(0, tabs.indexOf(currentTab)) + 1) %
-                            tabs.length
-                    ];
+                    tabs[(Math.max(0, currentTabIndex) + 1) % tabs.length];
                 dispatch(selectTab(nextTab));
                 break;
             }

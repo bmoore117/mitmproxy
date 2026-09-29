@@ -132,7 +132,7 @@ def is_mostly_bin(s: bytes) -> bool:
     # Cut off at ~100 chars, but do it smartly so that if the input is UTF-8, we don't
     # chop a multibyte code point in half.
     if len(s) > 100:
-        for cut in range(100, 104):
+        for cut in range(100, min(104, len(s))):
             is_continuation_byte = (s[cut] >> 6) == 0b10
             if not is_continuation_byte:
                 # A new character starts here, so we cut off just before that.
@@ -163,8 +163,10 @@ def is_mostly_bin(s: bytes) -> bool:
 
 
 def is_xml(s: bytes) -> bool:
+    # XML 1.0 §2.3 defines whitespace as (#x20 | #x9 | #xD | #xA), so a
+    # leading \r before "<" should also be skipped here.
     for char in s:
-        if char in (9, 10, 32):  # is space?
+        if char in (9, 10, 13, 32):  # is whitespace?
             continue
         return char == 60  # is a "<"?
     return False

@@ -5,6 +5,7 @@ import functools
 import hashlib
 import json
 import logging
+import mimetypes
 import os.path
 import re
 import secrets
@@ -47,6 +48,11 @@ from mitmproxy.utils.emoji import emoji
 from mitmproxy.utils.strutils import always_str
 from mitmproxy.utils.strutils import cut_after_n_lines
 from mitmproxy.websocket import WebSocketMessage
+
+# Fix for Windows systems where .js files may have text/plain MIME type in registry.
+# Modern browsers with ES6 module scripts require proper JavaScript MIME types.
+# See: https://github.com/mitmproxy/mitmproxy/issues/7971
+mimetypes.add_type("text/javascript", ".js")
 
 TRANSPARENT_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08"
@@ -602,8 +608,10 @@ class FlowHandler(RequestHandler):
                 elif a == "response" and hasattr(flow, "response"):
                     response: mitmproxy.http.Response = flow.response
                     for k, v in b.items():
-                        if k in ["msg", "http_version"]:
-                            setattr(response, k, str(v))
+                        if k == "reason":
+                            response.reason = str(v)
+                        elif k == "http_version":
+                            response.http_version = str(v)
                         elif k == "code":
                             response.status_code = int(v)
                         elif k == "headers":
@@ -919,6 +927,9 @@ class Application(tornado.web.Application):
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
+            # https://github.com/mitmproxy/mitmproxy/issues/8194
+            # 2026-05: We can move back to the default cookie name in a few years.
+            xsrf_cookie_name="_mitmproxy_xsrf",
             xsrf_cookie_kwargs=dict(samesite="Strict"),
             cookie_secret=secrets.token_bytes(32),
             debug=debug,

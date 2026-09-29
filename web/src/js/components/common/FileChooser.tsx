@@ -1,34 +1,39 @@
 import React from "react";
+import Icon from "./Icon";
+import type { IconName } from "./Icon";
 
 type FileChooserProps = {
-    icon: string;
+    icon: IconName;
+    iconClassName?: string;
     text?: string;
     className?: string;
     title?: string;
-    onOpenFile: (File) => void;
-    onClick?: (MouseEvent) => void;
+    onOpenFile: (file: File) => void;
+    onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 
 export default React.memo(function FileChooser({
     icon,
+    iconClassName,
     text,
     className,
     title,
     onOpenFile,
     onClick,
 }: FileChooserProps) {
-    let fileInput;
+    let fileInput: HTMLInputElement | null = null;
     return (
         <a
             href="#"
             onClick={(e) => {
-                fileInput.click();
+                fileInput?.click();
                 if (onClick) onClick(e);
             }}
             className={className}
             title={title}
         >
-            <i className={"fa fa-fw " + icon} />
+            <Icon name={icon} className={iconClassName} />
+            &nbsp;
             {text}
             <input
                 ref={(ref) => {
@@ -40,7 +45,7 @@ export default React.memo(function FileChooser({
                     e.preventDefault();
                     if (e.target.files && e.target.files.length > 0)
                         onOpenFile(e.target.files[0]);
-                    fileInput.value = "";
+                    if (fileInput) fileInput.value = "";
                 }}
             />
         </a>

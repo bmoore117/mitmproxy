@@ -1,4 +1,4 @@
-import { Comparer } from "@reduxjs/toolkit";
+import type { Comparer } from "@reduxjs/toolkit";
 import { toSpliced } from "./_compat";
 
 type Item = { id: string };
@@ -82,8 +82,20 @@ export function insertViewItem<T extends Item>(
     item: T,
     sort: Comparer<T>,
 ): { view: T[]; _viewIndex: Map<string, number> } {
-    const pos = findInsertPos(prevView, item, sort);
+    return insertViewItemAt(
+        prevView,
+        prevViewIndex,
+        item,
+        findInsertPos(prevView, item, sort),
+    );
+}
 
+export function insertViewItemAt<T extends Item>(
+    prevView: T[],
+    prevViewIndex: Map<string, number>,
+    item: T,
+    pos: number,
+): { view: T[]; _viewIndex: Map<string, number> } {
     const view = toSpliced(prevView, pos, 0, item);
 
     const _viewIndex = new Map(prevViewIndex);

@@ -3,10 +3,40 @@ import * as React from "react";
 import HttpMessage, {
     ViewImage,
 } from "../../../components/contentviews/HttpMessage";
-import { fireEvent, render, screen, waitFor } from "../../test-utils";
+import { act, fireEvent, render, screen, waitFor } from "../../test-utils";
 import fetchMock, { enableFetchMocks } from "jest-fetch-mock";
 
 enableFetchMocks();
+
+let mockUseCodeEditor = false,
+    mockCapturedOnChange: ((content: string) => void) | null = null;
+
+jest.mock("../../../components/contentviews/CodeEditor", () => {
+    const actual = jest.requireActual(
+        "../../../components/contentviews/CodeEditor",
+    );
+    return {
+        __esModule: true,
+        default: ({
+            initialContent,
+            onChange,
+        }: {
+            initialContent: string;
+            onChange: (c: string) => void;
+        }) => {
+            if (!mockUseCodeEditor) {
+                return actual.default({ initialContent, onChange });
+            }
+            mockCapturedOnChange = onChange;
+            return (
+                <textarea
+                    data-testid="mock-editor"
+                    defaultValue={initialContent}
+                />
+            );
+        },
+    };
+});
 
 test("HttpMessage", async () => {
     const text = "data\n".repeat(512) + "additional\n".repeat(512);
@@ -71,6 +101,27 @@ test("ViewImage", async () => {
     expect(asFragment()).toMatchSnapshot();
 });
 
+test("ViewImage.matches", () => {
+    const flow = TFlow();
+    const matches = (contentType: string) => {
+        flow.response.headers = [["Content-Type", contentType]];
+        return ViewImage.matches(flow.response);
+    };
+    expect(matches("image/png")).toBe(true);
+    expect(matches("image/jpeg")).toBe(true);
+    expect(matches("image/jpg")).toBe(true);
+    expect(matches("image/gif")).toBe(true);
+    expect(matches("image/webp")).toBe(true);
+    expect(matches("image/avif")).toBe(true);
+    expect(matches("image/svg+xml")).toBe(true);
+    expect(matches("image/vnd.microsoft.icon")).toBe(true);
+    expect(matches("image/x-icon")).toBe(true);
+    expect(matches("IMAGE/AVIF")).toBe(true);
+    expect(matches("image/heic")).toBe(false);
+    expect(matches("application/json")).toBe(false);
+    expect(matches("video/mp4")).toBe(false);
+});
+
 /*
     This test differs from the one above because clicking the copy button triggers 'handleClickCopyButton'.
     In the previous test, the response contained "raw content," which caused an "invalid JSON response body" error
@@ -113,5 +164,79 @@ describe("HttpMessage Copy Button", () => {
         await waitFor(() =>
             expect(console.error).toHaveBeenCalledWith(expect.any(Error)),
         );
+    });
+});
+
+describe("HttpMessage body edit", () => {
+    const cvd = { view_name: "Raw", description: "", syntax_highlight: "none" };
+
+    beforeEach(() => {
+        mockUseCodeEditor = true;
+        mockCapturedOnChange = null;
+        fetchMock.resetMocks();
+    });
+
+    afterEach(() => {
+        mockUseCodeEditor = false;
+        mockCapturedOnChange = null;
+    });
+
+    test("saving empty body sends empty string, not original content", async () => {
+        fetchMock.mockResponses(
+            JSON.stringify({ text: "original body", ...cvd }),
+            "original body",
+            JSON.stringify({}),
+        );
+
+        const tflow = TFlow();
+        render(<HttpMessage flow={tflow} message={tflow.request} />);
+        await waitFor(() => screen.getAllByText("original body"));
+
+        fireEvent.click(screen.getByText("Edit"));
+        await waitFor(() => screen.getByText("Done"));
+
+        expect(mockCapturedOnChange).not.toBeNull();
+        act(() => mockCapturedOnChange!(""));
+
+        fireEvent.click(screen.getByText("Done"));
+
+        await waitFor(() => {
+            const putCall = fetchMock.mock.calls.find(
+                ([, opts]) => opts && (opts as RequestInit).method === "PUT",
+            );
+            expect(putCall).toBeDefined();
+            const body = JSON.parse(putCall![1]!.body as string);
+            expect(body.request.content).toBe("");
+        });
+    });
+
+    test("saving unedited body sends original content", async () => {
+        fetchMock.mockResponses(
+            JSON.stringify({ text: "original body", ...cvd }),
+            "original body",
+            JSON.stringify({}),
+        );
+
+        const tflow = TFlow();
+        render(<HttpMessage flow={tflow} message={tflow.request} />);
+        await waitFor(() => screen.getAllByText("original body"));
+
+        fireEvent.click(screen.getByText("Edit"));
+        await waitFor(() => {
+            const editor = screen.getByTestId(
+                "mock-editor",
+            ) as HTMLTextAreaElement;
+            expect(editor.defaultValue).toBe("original body");
+        });
+        fireEvent.click(screen.getByText("Done"));
+
+        await waitFor(() => {
+            const putCall = fetchMock.mock.calls.find(
+                ([, opts]) => opts && (opts as RequestInit).method === "PUT",
+            );
+            expect(putCall).toBeDefined();
+            const body = JSON.parse(putCall![1]!.body as string);
+            expect(body.request.content).toBe("original body");
+        });
     });
 });

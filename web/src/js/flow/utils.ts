@@ -1,9 +1,11 @@
-import { Flow, HTTPMessage, HTTPRequest } from "../flow";
+import type { Flow, HTTPMessage, HTTPRequest } from "../flow";
 
 const defaultPorts = {
     http: 80,
     https: 443,
-};
+} as const;
+
+type SupportedScheme = keyof typeof defaultPorts;
 
 const _headerLookups: WeakMap<
     HTTPMessage,
@@ -38,7 +40,10 @@ export class MessageUtils {
         return ret !== false ? ret : undefined;
     }
 
-    static match_header(message, regex) {
+    static match_header(
+        message: HTTPMessage,
+        regex: RegExp,
+    ): [string, string] | false {
         const headers = message.headers;
         if (!headers) return false;
         let i = headers.length;
@@ -74,7 +79,10 @@ export class MessageUtils {
 export class RequestUtils extends MessageUtils {
     static pretty_url(request: HTTPRequest): string {
         let port = "";
-        if (defaultPorts[request.scheme] !== request.port) {
+        if (
+            request.scheme in defaultPorts &&
+            defaultPorts[request.scheme as SupportedScheme] !== request.port
+        ) {
             port = ":" + request.port;
         }
         return (
@@ -86,14 +94,14 @@ export class RequestUtils extends MessageUtils {
 export class ResponseUtils extends MessageUtils {}
 
 type ParsedUrl = {
-    scheme?: string;
+    scheme?: SupportedScheme;
     host?: string;
     port?: number;
     path?: string;
 };
 
 const parseUrl_regex = /^(?:(https?):\/\/)?([^/:]+)?(?::(\d+))?(\/.*)?$/i;
-export const parseUrl = function (url): ParsedUrl | undefined {
+export const parseUrl = function (url: string): ParsedUrl | undefined {
     //there are many correct ways to parse a URL,
     //however, a mitmproxy user may also wish to generate a not-so-correct URL. ;-)
     const parts = parseUrl_regex.exec(url);
@@ -101,7 +109,7 @@ export const parseUrl = function (url): ParsedUrl | undefined {
         return undefined;
     }
 
-    const scheme = parts[1];
+    const scheme = parts[1] as SupportedScheme | undefined;
     const host = parts[2];
     const optionalPort = parseInt(parts[3]);
     const path = parts[4];
@@ -189,42 +197,56 @@ export const canReplay = (flow: Flow): boolean => {
 export const canRevert = (flow: Flow): boolean => flow.modified;
 export const canResumeOrKill = (flow: Flow): boolean => flow.intercepted;
 
-export const getIcon = (flow: Flow): string => {
+export type ResourceType =
+    | "plain"
+    | "html"
+    | "js"
+    | "css"
+    | "image"
+    | "not-modified"
+    | "redirect"
+    | "websocket"
+    | "tcp"
+    | "udp"
+    | "dns"
+    | "quic";
+
+export const getResourceType = (flow: Flow): ResourceType => {
     if (flow.type !== "http") {
         if (flow.client_conn.tls_version === "QUICv1") {
-            return `resource-icon-quic`;
+            return "quic";
         }
-        return `resource-icon-${flow.type}`;
+        return flow.type;
     }
     if (flow.websocket) {
-        return "resource-icon-websocket";
+        return "websocket";
     }
     if (!flow.response) {
-        return "resource-icon-plain";
+        return "plain";
     }
 
     const contentType = ResponseUtils.getContentType(flow.response) || "";
 
     if (flow.response.status_code === 304) {
-        return "resource-icon-not-modified";
+        return "not-modified";
     }
     if (300 <= flow.response.status_code && flow.response.status_code < 400) {
-        return "resource-icon-redirect";
+        return "redirect";
     }
     if (contentType.indexOf("image") >= 0) {
-        return "resource-icon-image";
+        return "image";
     }
     if (contentType.indexOf("javascript") >= 0) {
-        return "resource-icon-js";
+        return "js";
     }
     if (contentType.indexOf("css") >= 0) {
-        return "resource-icon-css";
+        return "css";
     }
     if (contentType.indexOf("html") >= 0) {
-        return "resource-icon-document";
+        return "html";
     }
 
-    return "resource-icon-plain";
+    return "plain";
 };
 
 export const mainPath = (flow: Flow): string => {
@@ -258,6 +280,17 @@ export const statusCode = (flow: Flow): string | number | undefined => {
     }
 };
 
+export const statusClass = (code: string | number): string => {
+    const n = typeof code === "number" ? code : parseInt(code, 10);
+    if (Number.isNaN(n)) return "status-other";
+    if (n >= 100 && n < 200) return "status-1xx";
+    if (n >= 200 && n < 300) return "status-2xx";
+    if (n >= 300 && n < 400) return "status-3xx";
+    if (n >= 400 && n < 500) return "status-4xx";
+    if (n >= 500 && n < 600) return "status-5xx";
+    return "status-other";
+};
+
 export const getMethod = (flow: Flow): string => {
     switch (flow.type) {
         case "http":
@@ -284,7 +317,7 @@ export const getVersion = (flow: Flow): string => {
 
 export const sortFunctions = {
     tls: (flow: Flow) => flow.type === "http" && flow.request.scheme,
-    icon: getIcon,
+    icon: getResourceType,
     index: () => 0, // this is broken right now - ideally we switch to uuid7s on the backend and use that.
     path: mainPath,
     method: getMethod,

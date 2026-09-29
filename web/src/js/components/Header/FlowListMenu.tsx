@@ -52,7 +52,7 @@ function FlowFilterInput() {
             value={value}
             placeholder="Search"
             icon={FilterIcon.SEARCH}
-            color="black"
+            color="var(--mitmweb-fg)"
             onChange={(expr) => dispatch(setFilter(expr))}
         />
     );
@@ -80,7 +80,8 @@ export function ResumeAll() {
         <Button
             className="btn-sm"
             title="[a]ccept all"
-            icon="fa-forward text-success"
+            icon="resumeAll"
+            iconClassName="text-success"
             onClick={() => dispatch(flowsActions.resumeAll())}
         >
             Resume All

@@ -1,10 +1,12 @@
 import * as React from "react";
-import { LocalState } from "../../modes/local";
+import type { LocalState } from "../../modes/local";
 import { useAppDispatch, useAppSelector } from "../../ducks";
 import { setSelectedProcesses } from "../../ducks/modes/local";
 import { Popover } from "./Popover";
-import { fetchProcesses, Process } from "../../ducks/processes";
+import type { Process } from "../../ducks/processes";
+import { fetchProcesses } from "../../ducks/processes";
 import { rpartition } from "../../utils";
+import Icon from "../common/Icon";
 
 interface LocalDropdownProps {
     server: LocalState;
@@ -118,13 +120,13 @@ export default function LocalDropdown({ server }: LocalDropdownProps) {
                     onBlur={() => setPopoverVisible(false)}
                 />
                 <Popover
-                    iconClass="fa fa-chevron-down"
+                    icon="chevronDown"
                     classname="local-popover"
                     isVisible={isPopoverVisible}
                 >
                     <h4>Current Applications running on machine</h4>
                     {isLoading ? (
-                        <i className="fa fa-spinner" aria-hidden="true"></i>
+                        <Icon name="loading" />
                     ) : filteredProcesses.length > 0 ? (
                         <ul className="dropdown-list">
                             <li
@@ -146,10 +148,7 @@ export default function LocalDropdown({ server }: LocalDropdownProps) {
                                     </span>
                                 </div>
                                 {selectedProcesses === "" && (
-                                    <i
-                                        className="fa fa-check"
-                                        aria-hidden="true"
-                                    />
+                                    <Icon name="confirm" />
                                 )}
                             </li>
                             <hr className="process-separator" />
@@ -173,10 +172,7 @@ export default function LocalDropdown({ server }: LocalDropdownProps) {
                                         </span>
                                     </div>
                                     {isSelected(option) && (
-                                        <i
-                                            className="fa fa-check"
-                                            aria-hidden="true"
-                                        />
+                                        <Icon name="confirm" />
                                     )}
                                 </li>
                             ))}

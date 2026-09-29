@@ -7,6 +7,114 @@
 
 ## Unreleased: mitmproxy next
 
+- Add `launch_edge()` to the Browser addon, so `browser.start edge` can
+  launch an isolated, proxy-configured instance of Microsoft Edge, matching
+  the existing Chrome and Firefox support.
+  ([#8407](https://github.com/mitmproxy/mitmproxy/issues/8407), @eliahu-frusin)
+- Replace deprecated pyparsing APIs with their snake_case equivalents to avoid
+  `PyparsingDeprecationWarning` during command and flow-filter parsing.
+  ([#8344](https://github.com/mitmproxy/mitmproxy/pull/8344), @Dnsayhey)
+- mitmweb: Replace the flow table's raster resource type icons with SVG icons so they follow the active theme.
+  ([#8337](https://github.com/mitmproxy/mitmproxy/pull/8337), @sleeyax)
+- Bracket IPv6 target literals in the `CONNECT` request and `Host` header sent
+  to an upstream proxy (`--mode upstream`), producing a valid `[2001:db8::1]:443`
+  authority per RFC 3986 instead of the malformed `2001:db8::1:443`.
+  ([#8326](https://github.com/mitmproxy/mitmproxy/pull/8326), @gaurav0107)
+- mitmweb: Fix an infinite update cycle in the event log by only recomputing the virtual-scroll window in `componentDidUpdate` when the event list or `rowHeight` actually change.
+  ([#8312](https://github.com/mitmproxy/mitmproxy/pull/8312), @hexbinoct)
+- Remove the unused `msgpack` dependency. The msgpack contentview is
+  implemented in Rust and shipped with `mitmproxy_rs` since mitmproxy 12.
+  ([#8319](https://github.com/mitmproxy/mitmproxy/pull/8319), @lukehsiao)
+- Fix a crash on OpenSSL builds that reject a TLS protocol version at
+  context-setup time (e.g. SSLv3): `is_supported_version` now treats such a
+  version as unsupported instead of raising an unhandled `SSL.Error`.
+  ([#8294](https://github.com/mitmproxy/mitmproxy/pull/8294), @gaurav0107)
+- mitmweb: Fix the flow table header of the sorted column keeping a light background and hiding its sort chevron under the dark theme.
+  ([#8336](https://github.com/mitmproxy/mitmproxy/pull/8336), @sleeyax)
+- mitmweb: Add a dark theme, selectable via the new `web_theme` option (`system`, `dark`, or `light`).
+  `system` follows the operating system's color-scheme preference.
+  ([#8317](https://github.com/mitmproxy/mitmproxy/pull/8317), @sleeyax)
+- mitmweb: Show colored status-code badges and method badges in the flow table, and add hover
+  tooltips to the TLS, replay, intercept, and error indicators.
+  ([#8335](https://github.com/mitmproxy/mitmproxy/pull/8335), @sleeyax)
+- mitmweb: Honor the `view_order_reversed` option for live flows. New flows are
+  now placed at the top of the table when the option is set, instead of always
+  being appended at the bottom.
+  ([#8288](https://github.com/mitmproxy/mitmproxy/pull/8288), @hexbinoct)
+- Fix contentview detection for XML files that start with CRLF.
+  ([#8243](https://github.com/mitmproxy/mitmproxy/pull/8243), @ADiTyaRaj8969)
+- mitmweb: Fix the filter input losing half-typed text on unrelated parent re-renders.
+  ([#8234](https://github.com/mitmproxy/mitmproxy/pull/8234), @ariel42)
+- mitmweb: Fix an infinite update cycle in `FlowTable` by only recomputing the virtual-scroll window in `componentDidUpdate` when `flowView` or `rowHeight` actually change.
+  ([#8233](https://github.com/mitmproxy/mitmproxy/pull/8233), @ariel42)
+- mitmweb: Fix AVIF images and `image/vnd.microsoft.icon` favicons not rendering in the response tab.
+  ([#8232](https://github.com/mitmproxy/mitmproxy/pull/8232), @ariel42)
+- mitmweb: Fix correctly displaying multiple blank lines in content renderer.
+  ([#8248](https://github.com/mitmproxy/mitmproxy/pull/8248), @vincentdehaan)
+- Fix QUIC connections never starting if --allow-hosts or --ignore-hosts is set.
+  ([#8295](https://github.com/mitmproxy/mitmproxy/pull/8295), @tbodt)
+- Correctly read the SNI hostname from fragmented QUIC client hellos.
+  ([#8296](https://github.com/mitmproxy/mitmproxy/pull/8296), @tbodt)
+- mitmweb: Fix for modified reason phrase not being sent
+  ([#8333](https://github.com/mitmproxy/mitmproxy/pull/8333), @grusski)
+- Use stdlib (PEP-784) for Zstandard compression on Python 3.14+
+  ([#8397](https://github.com/mitmproxy/mitmproxy/pull/8397), @Rogdham)
+
+## 12 May 2026: mitmproxy 12.2.3
+
+- Reduce generated leaf certificate validity from 199 to 197 days so the 2-day
+  `notBefore` backdate remains below Chromium's 200-day limit.
+  ([#8203](https://github.com/mitmproxy/mitmproxy/pull/8203), @emanuele-em)
+- Fixed a bug where mitmweb would not pick up its XSRF cookie.
+  ([#8224](https://github.com/mitmproxy/mitmproxy/pull/8224), @mhils)
+- Fix `authority and subject key identifier mismatch` errors when mitmproxy
+  is configured with a custom CA whose SubjectKeyIdentifier was not derived
+  as SHA-1 of the public key.
+  ([#8214](https://github.com/mitmproxy/mitmproxy/pull/8214), @unique-jakub)
+- Fix `IndexError` in `is_mostly_bin` when exporting flows to HAR with payloads
+  that have a UTF-8 continuation byte at the 100-byte cutoff.
+  ([#8196](https://github.com/mitmproxy/mitmproxy/pull/8196), @juliosuas)
+
+## 12 April 2026: mitmproxy 12.2.2
+
+- [GHSA-527g-3w9m-29hv](https://github.com/mitmproxy/mitmproxy/security/advisories/GHSA-527g-3w9m-29hv):
+  Fix LDAP injection vulnerability reported by @yueyueL.
+  ([#8178](https://github.com/mitmproxy/mitmproxy/pull/8178), @mhils)
+- Reduce `CERT_EXPIRY` to 199 days.
+  ([#8142](https://github.com/mitmproxy/mitmproxy/pull/8142), @opstic)
+- Switch all content-encoding compression algorithms to use fastest settings by default.
+  This significantly improves addon runtime performance when assigning to `message.content`.
+  ([#8055](https://github.com/mitmproxy/mitmproxy/pull/8055), @Prinzhorn)
+- Fix addon options not being included in `--options` output.
+  ([#4423](https://github.com/mitmproxy/mitmproxy/issues/4423), @emanuele-em)
+- Fix `view.settings.setval.toggle` command to correctly use the provided key parameter instead of hardcoded "key" string.
+  ([#8167](https://github.com/mitmproxy/mitmproxy/pull/8167), @nameearly)
+- Fix 400 Bad Request for HTTP requests with uppercase scheme (e.g. `HTTP://`).
+  ([#8174](https://github.com/mitmproxy/mitmproxy/pull/8174), @emanuele-em)
+- Fix console command panel losing focus due to incoming traffic (e.g. websocket messages).
+  ([#8173](https://github.com/mitmproxy/mitmproxy/pull/8173), @emanuele-em)
+- mitmdump: Fix failed CONNECT requests not being displayed.
+  ([#7083](https://github.com/mitmproxy/mitmproxy/issues/7083), @Prinzhorn)
+- mitmweb: Reduce FlowTable Redux subscriptions from O(rows) to O(1).
+  ([#8104](https://github.com/mitmproxy/mitmproxy/pull/8104), @ariel42)
+- mitmweb: Fix editors not allowing content to be cleared to an empty string
+  ([#8149](https://github.com/mitmproxy/mitmproxy/pull/8149), @ariel42)
+- Update optmanager value parsing exceptions to include the option name
+  ([#8016](https://github.com/mitmproxy/mitmproxy/pull/8016), @zdwg42)
+- mitmweb: show intercept filter tag at the bottom for default options
+  ([#8026](https://github.com/mitmproxy/mitmproxy/pull/8026), @xBZZZZ)
+- Fix a bug where mitmweb would show a blank page on Windows.
+  ([#8041](https://github.com/mitmproxy/mitmproxy/pull/8041), @Prinzhorn)
+- mitmweb: Add number of selected flows in the footer
+  ([#8057](https://github.com/mitmproxy/mitmproxy/pull/8057), @skrattara)
+- Fix `modify_body` crash when replacement strings contain backslash sequences.
+  ([#8046](https://github.com/mitmproxy/mitmproxy/pull/8046), @HueCodes)
+- Added support for adding and editing comments on individual flows in the mitmproxy console.
+  ([#7944](https://github.com/mitmproxy/mitmproxy/pull/7944), @lups2000)
+- Allow hiding the Quick Help UI in the mitmproxy console with the 'H' key.
+  ([#8095](https://github.com/mitmproxy/mitmproxy/pull/8095), @seroperson)
+- Removed several dead functions using [Skylos](https://github.com/duriantaco/skylos).
+  ([#8136](https://github.com/mitmproxy/mitmproxy/pull/8136), @duriantaco)
 
 ## 24 November 2025: mitmproxy 12.2.1
 
@@ -25,7 +133,7 @@
   ([#7928](https://github.com/mitmproxy/mitmproxy/pull/7928), @xu-cheng)
 - Add example addon to spoof DNS responses.
   ([#7973](https://github.com/mitmproxy/mitmproxy/pull/7973), @mhils)
-- Gracefully handle decoding of raw binary payloads that previously caused 
+- Gracefully handle decoding of raw binary payloads that previously caused
   "Raw cannot decode" or "failed to parse as JSON" errors
   ([#7940](https://github.com/mitmproxy/mitmproxy/pull/7940), @AdityaPatadiya)
 - Show query parameters for empty-body requests in the mitmproxy console.
@@ -36,6 +144,8 @@
   ([#7963](https://github.com/mitmproxy/mitmproxy/pull/7963), @Julien00859)
 - Fix event loop leak when running tests
   ([#7982](https://github.com/mitmproxy/mitmproxy/pull/7982), @DNEGEL3125)
+- Fix TypeScript build by adding React types and removing obsolete `@ts-expect-error` directives.
+  ([#7988](https://github.com/mitmproxy/mitmproxy/pull/7988), @DNEGEL3125)
 
 ## 15 October 2025: mitmproxy 12.2.0
 

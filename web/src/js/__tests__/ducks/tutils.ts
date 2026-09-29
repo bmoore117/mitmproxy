@@ -1,8 +1,8 @@
 import { ConnectionState } from "../../ducks/connection";
 import { TDNSFlow, THTTPFlow, TTCPFlow, TUDPFlow } from "./_tflow";
-import { RootState, RootStore } from "../../ducks";
+import type { RootState, RootStore } from "../../ducks";
 import { middlewares, reducer } from "../../ducks/store";
-import { DNSFlow, Flow, HTTPFlow, TCPFlow, UDPFlow } from "../../flow";
+import type { DNSFlow, Flow, HTTPFlow, TCPFlow, UDPFlow } from "../../flow";
 import { defaultState as defaultOptions } from "../../ducks/options";
 import { TBackendState } from "./_tbackendstate";
 import { configureStore } from "@reduxjs/toolkit";
@@ -95,6 +95,7 @@ export const testState: RootState = {
             desc: true,
             column: "path",
         },
+        orderReversed: false,
         view: [tflow1, tflow2, tflow3, tflow4],
         list: [tflow0, tflow1, tflow2, tflow3, tflow4],
         _listIndex: new Map<string, number>([

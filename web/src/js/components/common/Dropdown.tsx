@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useFloating, UseFloatingOptions } from "@floating-ui/react-dom";
+import type { UseFloatingOptions } from "@floating-ui/react-dom";
+import { useFloating } from "@floating-ui/react-dom";
 import classnames from "classnames";
+import Icon from "./Icon";
 
-export const Divider = () => <li role="separator" className="divider" />;
+export const Divider = () => <li role="separator" className="menu-divider" />;
 
 type MenuItemProps = {
     onClick: () => void;
@@ -10,7 +12,7 @@ type MenuItemProps = {
 };
 
 export function MenuItem({ onClick, children, ...attrs }: MenuItemProps) {
-    const click = (e) => {
+    const click = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         onClick();
     };
@@ -39,7 +41,7 @@ export function SubMenu({ title, children, className }: SubMenuProps) {
     if (open) {
         submenu = (
             <ul
-                className={classnames("dropdown-menu show", className)}
+                className={classnames("dropdown-menu is-open", className)}
                 ref={refs.setFloating}
                 style={floatingStyles}
             >
@@ -55,11 +57,7 @@ export function SubMenu({ title, children, className }: SubMenuProps) {
             onMouseLeave={() => setOpen(false)}
         >
             <a>
-                <i
-                    className="fa fa-caret-right pull-right"
-                    aria-hidden="true"
-                />{" "}
-                {title}
+                <Icon name="chevronRight" className="float-right" /> {title}
             </a>
             {submenu}
         </li>
@@ -118,7 +116,7 @@ export default React.memo(function Dropdown({
     if (open) {
         contents = (
             <ul
-                className="dropdown-menu show"
+                className="dropdown-menu is-open"
                 ref={refs.setFloating}
                 style={floatingStyles}
             >
@@ -134,7 +132,10 @@ export default React.memo(function Dropdown({
             <a
                 href="#"
                 ref={refs.setReference}
-                className={classnames(className, { open: open })}
+                className={classnames(className, {
+                    open: open,
+                    "is-open": open,
+                })}
                 onClick={(e) => {
                     e.preventDefault();
                     setOpen(true);

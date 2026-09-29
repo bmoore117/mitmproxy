@@ -34,6 +34,9 @@ the repository maintainers directly for issues with native packages.
 ## Windows
 
 To install mitmproxy on Windows, download the installer from [mitmproxy.org](https://mitmproxy.org/). 
+Alternatively, mitmproxy is also available on the
+[Microsoft Store](https://apps.microsoft.com/detail/9NWNDLQMNZD7), which installs
+updates automatically.
 We also provide standalone binaries, they take significantly longer to start
 as some files need to be extracted to temporary directories first.
 After installation, mitmproxy, mitmdump and mitmweb are also added to your PATH and can be invoked from the command line.
@@ -59,16 +62,16 @@ on GitHub.
 If your mitmproxy addons require the installation of additional Python packages,
 you can install mitmproxy from [PyPI](https://pypi.org/project/mitmproxy/).
 
-While there are plenty of options around[^1], we recommend the installation using uvx:
+While there are plenty of options around[^1], we recommend the installation using uv:
 
 [^1]: If you are familiar with the Python ecosystem, you may know that there are a million ways to install Python
     packages. Most of them (pip, virtualenv, pipenv, etc.) should just work, but we don't have the capacity to
     provide support for it.
 
 1. Install [uv](https://docs.astral.sh/uv/).
-2. `uvx mitmproxy` (or `uvx --from mitmproxy mitmweb`)
+2. `uv tool install mitmproxy`.
 
-To install additional Python packages, run `uvx --with <your-package-name> mitmproxy`.
+To install additional Python packages, run `uv tool install --with <your-package-name> mitmproxy`.
 
 ### Docker Images
 
