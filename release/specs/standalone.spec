@@ -1,5 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_submodules
+
+# urwid 4 loads these with importlib.util.find_spec, which PyInstaller does not trace.
+urwid_hiddenimports = collect_submodules("urwid")
+
 for tool in ["mitmproxy", "mitmdump", "mitmweb"]:
     excludes = []
     if tool != "mitmweb":
@@ -21,10 +26,14 @@ for tool in ["mitmproxy", "mitmdump", "mitmweb"]:
         'wsproto', 'wsproto.frame_protocol',
     ]
 
+    hiddenimports = list(addon_hiddenimports)
+    if tool == "mitmproxy":
+        hiddenimports += urwid_hiddenimports
+
     a = Analysis(
         [tool],
         excludes=excludes,
-        hiddenimports=addon_hiddenimports,
+        hiddenimports=hiddenimports,
     )
     pyz = PYZ(a.pure, a.zipped_data)
 
